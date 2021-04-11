@@ -1,0 +1,57 @@
+<div class="row no-gutters container" *ngIf="!displayDataTabulator; else displayTabulator">
+  <div class="column center-items">
+    <div class="content file-zone text-center" appFileDrop (fileDropped)="onFileDropped($event)">
+      <input type="file" #file id="file" id (change)="onFileAdded($event)" />
+      <ng-container *ngIf="!uploadedFileName; else fileUploaded">
+        <img src="../../../assets/upload.svg" alt="upload files icon" />
+        <h3>Drag and drop file here</h3>
+        <h4>or</h4>
+        <label for="file">
+          <button class="btn primary browse-file" (click)="file.click()">Browse for file</button>
+        </label>
+      </ng-container>
+      <ng-template #fileUploaded>
+        <img src="../../../assets/file.svg" alt="uploaded file icon" />
+        <h3>{{ uploadedFileName }}</h3>
+        <h4>
+          <span [ngClass]="{ error: parseError }" *ngIf="parseError; else noError">
+            Please upload a valid JSON file.
+          </span>
+          <ng-template #noError>
+            <span [ngClass]="{ warning: processingFile }" *ngIf="processingFile; else allOK">
+              Processing uploaded file ...
+            </span>
+            <ng-template #allOK>&nbsp;</ng-template>
+          </ng-template>
+        </h4>
+        <label for="file">
+          <button class="btn primary change-file" (click)="file.click()">Change file</button>
+        </label>
+      </ng-template>
+    </div>
+  </div>
+</div>
+<ng-template #displayTabulator>
+  <div class="table-container">
+    <ag-grid-angular
+      class="table ag-theme-alpine"
+      [rowData]="rowData"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      (gridReady)="onGridReady($event)"
+    >
+    </ag-grid-angular>
+  </div>
+  <div class="mt-3 mb-2 text-center">
+    <button class="btn secondary back-home" (click)="setDisplayDataTabulator(false)">
+      Back to Home
+    </button>
+    <button
+      class="btn primary export-csv"
+      (click)="exportAsCsv()"
+      [disabled]="parseError || processingFile"
+    >
+      Export as CSV
+    </button>
+  </div>
+</ng-template>
