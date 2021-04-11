@@ -15,6 +15,6 @@ before_deploy:
 deploy:
   provider: script
   edge: true
-  script: netlify deploy --dir=dist/ng-boilerplate --prod
+  script: netlify deploy --dir=dist/trello-to-table --prod
   on:
     branch: main

@@ -29,7 +29,7 @@ module.exports = function (config) {
       'src/app/**/*.ts': ['coverage']
     },
     coverageReporter: {
-      dir: require('path').join(__dirname, './coverage/ng-boilerplate'),
+      dir: require('path').join(__dirname, './coverage/trello-to-table'),
       subdir: '.',
       reporters: [{ type: 'html' }, { type: 'text-summary' }, { type: 'lcovonly' }]
     },

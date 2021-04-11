@@ -10,7 +10,7 @@ describe('workspace-project App', () => {
 
   it('should display welcome message', async () => {
     await page.navigateTo();
-    expect(await page.getTitleText()).toEqual('ng-boilerplate app is running!');
+    expect(await page.getTitleText()).toEqual('trello-to-table app is running!');
   });
 
   afterEach(async () => {
