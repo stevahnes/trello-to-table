@@ -30,6 +30,7 @@
     "ag-grid-angular": "^25.1.0",
     "ag-grid-community": "^25.1.0",
     "bootstrap": "^4.5.0",
+    "dayjs": "^1.10.4",
     "lodash": "^4.17.20",
     "puppeteer": "^7.0.1",
     "rxjs": "^6.6.3",

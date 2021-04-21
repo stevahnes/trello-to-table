@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
-import { filter, find } from 'lodash';
-import { FieldToHeaderName } from './constants/table.constants';
-import { Card, Member, List, Nullable } from './models/trello.model';
+import { filter, find, toLower } from 'lodash';
+import { ExactDueDate, FieldToHeaderName } from './constants/table.constants';
+import { Card, Member, List, Attachment, Nullable, Label } from './models/trello.model';
+import dayjs from 'dayjs';
+import quarterOfYear from 'dayjs/plugin/quarterOfYear';
 
 @Component({
   selector: 'app-tabulator',
@@ -32,11 +34,15 @@ export class TabulatorComponent implements OnInit {
 
   ngOnInit(): void {
     for (const field of Object.keys(FieldToHeaderName)) {
-      this.columnDefs.push({
+      const colDef: Partial<ColDef> = {
         field,
         headerName: FieldToHeaderName[field].headerName,
         width: FieldToHeaderName[field].width
-      });
+      };
+      if (FieldToHeaderName[field].valueFormatter) {
+        colDef.valueFormatter = FieldToHeaderName[field].valueFormatter;
+      }
+      this.columnDefs.push(colDef);
     }
   }
 
@@ -64,7 +70,7 @@ export class TabulatorComponent implements OnInit {
 
   exportAsCsv(): void {
     if (this.api) {
-      this.api.exportDataAsCsv();
+      this.api.exportDataAsCsv({ suppressQuotes: true, columnSeparator: ';' });
     }
   }
 
@@ -101,6 +107,7 @@ export class TabulatorComponent implements OnInit {
   private updateRowData(members: Member[], lists: List[], cards: Card[]): void {
     for (const [index, card] of cards.entries()) {
       const rowData: any = {};
+      let cardStatus = '';
       for (const field in FieldToHeaderName) {
         if (FieldToHeaderName[field].cardKey) {
           const key = FieldToHeaderName[field].cardKey;
@@ -108,19 +115,41 @@ export class TabulatorComponent implements OnInit {
             switch (key) {
               case 'idList':
                 const list: List | undefined = find(lists, ['id', card[key as keyof Card]]);
-                rowData[field] = list ? list.name : '';
+                cardStatus = list ? list.name : '';
+                rowData[field] = cardStatus;
                 break;
               case 'idMembers':
                 const idMembers: string[] = card[key as keyof Card] as string[];
                 const filteredMembers: string[] = filter(members, (member) =>
                   idMembers.includes(member.id)
                 ).map((member) => member.fullName);
-                rowData[field] = filteredMembers.length > 0 ? filteredMembers.join(' | ') : '';
+                rowData[field] = filteredMembers.length > 0 ? filteredMembers.join(', ') : '';
                 break;
               default:
                 break;
             }
           } else if (key.includes('attachments')) {
+            const attachments: Attachment[] = card[key as keyof Card] as Attachment[];
+            for (const attachment of attachments) {
+              if (toLower(attachment.name) === field) {
+                rowData[field] = `${attachment.name};${attachment.url}`;
+              }
+            }
+          } else if (key.includes('labels')) {
+            if (field === 'requester') {
+              const labels: Label[] = card[key as keyof Card] as Label[];
+              rowData[field] = labels.map((label) => label.name).join(', ');
+            }
+          } else if (key.includes('due')) {
+            const dueDate: string = card[key as keyof Card] as string;
+            if (dueDate) {
+              if (ExactDueDate.includes(cardStatus)) {
+                rowData[field] = dayjs(dueDate).format('DD MMM YY');
+              } else {
+                dayjs.extend(quarterOfYear);
+                rowData[field] = `Q${dayjs(dueDate).quarter()}`;
+              }
+            }
           } else {
             rowData[field] = card[key as keyof Card];
           }

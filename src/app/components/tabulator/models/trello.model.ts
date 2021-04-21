@@ -33,6 +33,7 @@ export interface Card {
   attachments: Attachment[];
   cover: Cover;
   dateLastActivity: string;
+  due: Nullable<string>;
   desc: string;
   email: string;
   name: string;
