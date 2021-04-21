@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
-import { filter, find, toLower } from 'lodash';
-import { ExactDueDate, FieldToHeaderName } from './constants/table.constants';
+import { filter, find, replace, toLower } from 'lodash';
+import { ExactDueDate, FieldToHeaderName, frameworkComponents } from './constants/table.constants';
 import { Card, Member, List, Attachment, Nullable, Label } from './models/trello.model';
 import dayjs from 'dayjs';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear';
@@ -24,6 +24,7 @@ export class TabulatorComponent implements OnInit {
     filter: true,
     resizable: true
   };
+  public frameworkComponents = frameworkComponents;
   public columnDefs: Partial<ColDef>[] = [];
   public rowData: any[] = [];
   private api: Nullable<GridApi> = null;
@@ -39,8 +40,11 @@ export class TabulatorComponent implements OnInit {
         headerName: FieldToHeaderName[field].headerName,
         width: FieldToHeaderName[field].width
       };
-      if (FieldToHeaderName[field].valueFormatter) {
-        colDef.valueFormatter = FieldToHeaderName[field].valueFormatter;
+      if (FieldToHeaderName[field].valueGetter) {
+        colDef.valueGetter = FieldToHeaderName[field].valueGetter;
+      }
+      if (FieldToHeaderName[field].cellRenderer) {
+        colDef.cellRenderer = FieldToHeaderName[field].cellRenderer;
       }
       this.columnDefs.push(colDef);
     }
@@ -151,7 +155,7 @@ export class TabulatorComponent implements OnInit {
               }
             }
           } else {
-            rowData[field] = card[key as keyof Card];
+            rowData[field] = replace(card[key as keyof Card] as string, /\n/g, ' ');
           }
         } else {
           if (field === 'number') {
