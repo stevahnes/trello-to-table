@@ -147,9 +147,13 @@ export class TabulatorComponent implements OnInit {
           } else if (key.includes('due')) {
             const dueDate: string = card[key as keyof Card] as string;
             if (dueDate) {
-              if (ExactDueDate.includes(cardStatus)) {
-                rowData[field] = dayjs(dueDate).format('DD MMM YY');
-              } else {
+              for (const status of ExactDueDate) {
+                if (cardStatus.includes(status)) {
+                  rowData[field] = dayjs(dueDate).format('DD MMM YY');
+                  break;
+                }
+              }
+              if (!rowData[field]) {
                 dayjs.extend(quarterOfYear);
                 rowData[field] = `Q${dayjs(dueDate).quarter()}`;
               }
