@@ -7,7 +7,7 @@ import { replace } from 'lodash';
 @Component({
   selector: 'app-csv-link-renderer',
   template: `
-    <a href="{{ link }}">
+    <a href="{{ link }}" target="_blank">
       <span>{{ name }}</span>
     </a>
   `
