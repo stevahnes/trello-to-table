@@ -51,6 +51,19 @@ export const frameworkComponents = {
 
 export const ExactDueDate: string[] = ['Developing', 'Testing', 'UAT', 'Staging', 'Done', 'Live'];
 
+export const DesiredStatuses: string[] = [
+  'Backlog',
+  'Feasibility Studies',
+  'PRD',
+  'Technical Design',
+  'Developing',
+  'Testing',
+  'UAT',
+  'Staging',
+  'Done',
+  'Live'
+];
+
 function csvLinkValueGetter(params: ValueGetterParams): string {
   let returnString = '';
   const colId = params.column.getColId();

@@ -1,7 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import { filter, find, replace, toLower } from 'lodash';
-import { ExactDueDate, FieldToHeaderName, frameworkComponents } from './constants/table.constants';
+import {
+  DesiredStatuses,
+  ExactDueDate,
+  FieldToHeaderName,
+  frameworkComponents
+} from './constants/table.constants';
 import { Card, Member, List, Attachment, Nullable, Label } from './models/trello.model';
 import dayjs from 'dayjs';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear';
@@ -99,7 +104,8 @@ export class TabulatorComponent implements OnInit {
         this.members = content.members;
         this.lists = content.lists;
         this.cards = content.cards;
-        this.updateRowData(this.members, this.lists, this.cards);
+        const desiredStatusIds: string[] = this.getDesiredStatusIds(this.lists, DesiredStatuses);
+        this.updateRowData(desiredStatusIds, this.members, this.lists, this.cards);
       }
       this.displayDataTabulator = true;
       this.processingFile = false;
@@ -108,68 +114,97 @@ export class TabulatorComponent implements OnInit {
     }
   }
 
-  private updateRowData(members: Member[], lists: List[], cards: Card[]): void {
-    for (const [index, card] of cards.entries()) {
-      const rowData: any = {};
-      let cardStatus = '';
-      for (const field in FieldToHeaderName) {
-        if (FieldToHeaderName[field].cardKey) {
-          const key = FieldToHeaderName[field].cardKey;
-          if (key.includes('id')) {
-            switch (key) {
-              case 'idList':
-                const list: List | undefined = find(lists, ['id', card[key as keyof Card]]);
-                cardStatus = list ? list.name : '';
-                rowData[field] = cardStatus;
-                break;
-              case 'idMembers':
-                const idMembers: string[] = card[key as keyof Card] as string[];
-                const filteredMembers: string[] = filter(members, (member) =>
-                  idMembers.includes(member.id)
-                ).map((member) => member.fullName);
-                rowData[field] = filteredMembers.length > 0 ? filteredMembers.join(', ') : '';
-                break;
-              default:
-                break;
-            }
-          } else if (key.includes('attachments')) {
-            const attachments: Attachment[] = card[key as keyof Card] as Attachment[];
-            for (const attachment of attachments) {
-              if (toLower(attachment.name) === field) {
-                rowData[field] = `${attachment.name};${attachment.url}`;
-              }
-            }
-          } else if (key.includes('labels')) {
-            if (field === 'requester') {
-              const labels: Label[] = card[key as keyof Card] as Label[];
-              rowData[field] = labels.map((label) => label.name).join(', ');
-            }
-          } else if (key.includes('due')) {
-            const dueDate: string = card[key as keyof Card] as string;
-            if (dueDate) {
-              for (const status of ExactDueDate) {
-                if (cardStatus.includes(status)) {
-                  rowData[field] = dayjs(dueDate).format('DD MMM YY');
+  private removeEmojis(str: string): string {
+    return str.replace(
+      /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
+      ''
+    );
+  }
+
+  private getDesiredStatusIds(lists: List[], desiredStatuses: string[]): string[] {
+    const desiredStatusIds: string[] = [];
+    for (const desiredStatus of desiredStatuses) {
+      const desiredList = find(lists, (list: List) => list.name.includes(desiredStatus));
+      if (desiredList) {
+        desiredStatusIds.push(desiredList.id);
+      }
+    }
+    return desiredStatusIds;
+  }
+
+  private updateRowData(
+    desiredStatusIds: string[],
+    members: Member[],
+    lists: List[],
+    cards: Card[]
+  ): void {
+    if (desiredStatusIds.length < 1) {
+      return;
+    }
+    let counter = 0;
+    for (const card of cards) {
+      if (desiredStatusIds.includes(card.idList)) {
+        const rowData: any = {};
+        let cardStatus = '';
+        for (const field in FieldToHeaderName) {
+          if (FieldToHeaderName[field].cardKey) {
+            const key = FieldToHeaderName[field].cardKey;
+            if (key.includes('id')) {
+              switch (key) {
+                case 'idList':
+                  const list: List | undefined = find(lists, ['id', card[key as keyof Card]]);
+                  cardStatus = list ? this.removeEmojis(list.name) : '';
+                  rowData[field] = cardStatus;
                   break;
+                case 'idMembers':
+                  const idMembers: string[] = card[key as keyof Card] as string[];
+                  const filteredMembers: string[] = filter(members, (member) =>
+                    idMembers.includes(member.id)
+                  ).map((member) => member.fullName);
+                  rowData[field] = filteredMembers.length > 0 ? filteredMembers.join(', ') : '';
+                  break;
+                default:
+                  break;
+              }
+            } else if (key.includes('attachments')) {
+              const attachments: Attachment[] = card[key as keyof Card] as Attachment[];
+              for (const attachment of attachments) {
+                if (toLower(attachment.name) === field) {
+                  rowData[field] = `${attachment.name};${attachment.url}`;
                 }
               }
-              if (!rowData[field]) {
-                dayjs.extend(quarterOfYear);
-                rowData[field] = `Q${dayjs(dueDate).quarter()}`;
+            } else if (key.includes('labels')) {
+              if (field === 'requester') {
+                const labels: Label[] = card[key as keyof Card] as Label[];
+                rowData[field] = labels.map((label) => label.name).join(', ');
               }
+            } else if (key.includes('due')) {
+              const dueDate: string = card[key as keyof Card] as string;
+              if (dueDate) {
+                for (const status of ExactDueDate) {
+                  if (cardStatus.includes(status)) {
+                    rowData[field] = dayjs(dueDate).format('DD MMM YY');
+                    break;
+                  }
+                }
+                if (!rowData[field]) {
+                  dayjs.extend(quarterOfYear);
+                  rowData[field] = `Q${dayjs(dueDate).quarter()}`;
+                }
+              }
+            } else {
+              rowData[field] = replace(card[key as keyof Card] as string, /\n/g, ' ');
             }
           } else {
-            rowData[field] = replace(card[key as keyof Card] as string, /\n/g, ' ');
-          }
-        } else {
-          if (field === 'number') {
-            rowData[field] = index + 1;
-          } else {
-            rowData[field] = '';
+            if (field === 'number') {
+              rowData[field] = ++counter;
+            } else {
+              rowData[field] = '';
+            }
           }
         }
+        this.rowData.push(rowData);
       }
-      this.rowData.push(rowData);
     }
   }
 }
