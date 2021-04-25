@@ -13,7 +13,7 @@ export const FieldToHeaderName: {
 } = {
   number: { headerName: 'No.', width: 100, cardKey: '' },
   requester: {
-    headerName: 'Requester [Team/Name]',
+    headerName: 'Requester',
     width: 200,
     cardKey: 'labels'
   },
