@@ -51,6 +51,9 @@ export class TabulatorComponent implements OnInit {
       if (FieldToHeaderName[field].cellRenderer) {
         colDef.cellRenderer = FieldToHeaderName[field].cellRenderer;
       }
+      if (FieldToHeaderName[field].comparator) {
+        colDef.comparator = FieldToHeaderName[field].comparator;
+      }
       this.columnDefs.push(colDef);
     }
   }
